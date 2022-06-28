@@ -1,0 +1,1809 @@
+import random
+import pygame
+from pygame.locals import *
+from OpenGL.GL import *
+from OpenGL.GLU import *
+from time import time
+
+
+color_to_rgb = {"R":(1,0,0), "G":(0,1,0), "Y":(1,1,0), "B":(0,0,1), "W":(1,1,1), "O":(1,0.5,0)}
+centre_matrix = (
+        (2,3,2), (0,3,2), (-2,3,2), (2,3,0), (0,3,0), (-2,3,0), (2,3,-2), (0,3,-2), (-2,3,-2),  #frontside
+        (3,-2,2), (3,0,2), (3,2,2), (3,-2,0), (3,0,0), (3,2,0), (3,-2,-2), (3,0,-2), (3,2,-2),   #leftside
+        (-3,2,2), (-3,0,2), (-3,-2,2), (-3,2,0), (-3,0,0), (-3,-2,0), (-3,2,-2), (-3,0,-2), (-3,-2,-2),   #rightside
+        (2,-2,3), (0,-2,3), (-2,-2,3), (2,0,3), (0,0,3), (-2,0,3), (2,2,3), (0,2,3), (-2,2,3),   #upside
+        (2,2,-3), (0,2,-3), (-2,2,-3), (2,0,-3), (0,0,-3), (-2,0,-3), (2,-2,-3), (0,-2,-3), (-2,-2,-3),   #downside
+        (-2,-3,2), (0,-3,2), (2,-3,2), (-2,-3,0), (0,-3,0), (2,-3,0), (-2,-3,-2), (0,-3,-2), (2,-3,-2)   #backside
+    )
+
+
+class Face:
+
+    def __init__(self, cen: tuple, color: str, direction: str):
+
+        self.colour = color_to_rgb[color]
+        self.vertices = list()
+        if direction == "z":
+            self.vertices = (
+                (cen[0]+1, cen[1]+1, cen[2]),
+                (cen[0]+1, cen[1]-1, cen[2]),
+                (cen[0]-1, cen[1]-1, cen[2]),
+                (cen[0]-1, cen[1]+1, cen[2])
+            )
+
+        elif direction == "y":
+            self.vertices = (
+                (cen[0]+1, cen[1], cen[2]+1),
+                (cen[0]+1, cen[1], cen[2]-1),
+                (cen[0]-1, cen[1], cen[2]-1),
+                (cen[0]-1, cen[1], cen[2]+1)
+            )
+
+        elif direction == "x":
+            self.vertices = (
+                (cen[0], cen[1]+1, cen[2]+1),
+                (cen[0], cen[1]+1, cen[2]-1),
+                (cen[0], cen[1]-1, cen[2]-1),
+                (cen[0], cen[1]-1, cen[2]+1)
+            )
+
+        self.edges = (
+                (self.vertices[0], self.vertices[1]),
+                (self.vertices[1], self.vertices[2]),
+                (self.vertices[2], self.vertices[3]),
+                (self.vertices[3], self.vertices[0])
+            )
+
+    def draw(self):
+
+        glLineWidth(5.0)
+        glBegin(GL_QUADS)
+        glColor3fv(self.colour)
+        for vertex in self.vertices:
+            glVertex3fv(vertex)
+        glEnd()
+        
+        glBegin(GL_LINES)
+        glColor3fv((0,0,0))
+        for edge in self.edges:
+            for vertex in edge:
+                glVertex3fv(vertex)
+        glEnd()
+
+
+class Rubic:
+
+    def __init__(self):
+        self.side_1 = list()
+        self.side_2 = list()
+        self.side_3 = list()
+        self.side_4 = list()
+        self.side_5 = list()
+        self.side_6 = list()
+        for i in range(9):
+            self.side_1.append("R")
+            self.side_2.append("G")
+            self.side_3.append("Y")
+            self.side_4.append("B")
+            self.side_5.append("W")
+            self.side_6.append("O")
+
+        self.frontside = self.side_1
+        self.leftside = self.side_2
+        self.rightside = self.side_3
+        self.upside = self.side_4
+        self.downside = self.side_5
+        self.backside = self.side_6
+
+    def ROTATE(self, d = "right", mode = "none"):
+        anim = False
+        if mode == "real":   #enable rotating animation
+            anim = True
+
+        def CW_rotate(side):
+            for i in range(2):
+                temp = side[0]
+                side[0] = side[3]
+                side[3] = side[6]
+                side[6] = side[7]
+                side[7] = side[8]
+                side[8] = side[5]
+                side[5] = side[2]
+                side[2] = side[1]
+                side[1] = temp
+
+        def ACW_rotate(side):
+            for i in range(2):
+                temp = side[0]
+                side[0] = side[1]
+                side[1] = side[2]
+                side[2] = side[5]
+                side[5] = side[8]
+                side[8] = side[7]
+                side[7] = side[6]
+                side[6] = side[3]
+                side[3] = temp
+
+        def reverse(side):
+            for i in range(3):
+                temp = side[i]
+                side[i] = side[i+6]
+                side[i+6] = temp
+            for i in range(3):
+                temp = side[i*3]
+                side[i*3] = side[i*3+2]
+                side[i*3+2] = temp
+        
+
+        if d == "up":
+            if anim:
+                angle = 0
+                while angle < 90:
+                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+                    glPushMatrix()
+                    glRotated(angle, 1, 0, 0)
+                    for fface, lface, rface, uface, dface, bface, i in zip(
+                        self.frontside,
+                        self.leftside,
+                        self.rightside,
+                        self.upside,
+                        self.downside,
+                        self.backside,
+                        range(9)
+                    ):
+                        F = Face(centre_matrix[i], fface, "y")
+                        L = Face(centre_matrix[9+i], lface, "x")
+                        R = Face(centre_matrix[18+i], rface, "x")
+                        U = Face(centre_matrix[27+i], uface, "z")
+                        D = Face(centre_matrix[36+i], dface, "z")
+                        B = Face(centre_matrix[45+i], bface, "y")
+                        F.draw()
+                        L.draw()
+                        R.draw()
+                        U.draw()
+                        D.draw()
+                        B.draw()
+                    
+                    glPopMatrix()
+                    angle += 3
+                    pygame.display.flip()                
+                
+            reverse(self.backside)
+            temp = self.downside
+            self.downside = self.backside
+            self.backside = self.upside
+            self.upside = self.frontside
+            self.frontside = temp
+            CW_rotate(self.rightside)
+            ACW_rotate(self.leftside)
+            reverse(self.backside)
+
+        elif d == "down":
+            if anim:
+                angle = 0
+                while angle < 90:
+                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+                    glPushMatrix()
+                    glRotated(angle, -1, 0, 0)
+                    for fface, lface, rface, uface, dface, bface, i in zip(
+                        self.frontside,
+                        self.leftside,
+                        self.rightside,
+                        self.upside,
+                        self.downside,
+                        self.backside,
+                        range(9)
+                    ):
+                        F = Face(centre_matrix[i], fface, "y")
+                        L = Face(centre_matrix[9+i], lface, "x")
+                        R = Face(centre_matrix[18+i], rface, "x")
+                        U = Face(centre_matrix[27+i], uface, "z")
+                        D = Face(centre_matrix[36+i], dface, "z")
+                        B = Face(centre_matrix[45+i], bface, "y")
+                        F.draw()
+                        L.draw()
+                        R.draw()
+                        U.draw()
+                        D.draw()
+                        B.draw()
+                    
+                    glPopMatrix()
+                    angle += 3
+                    pygame.display.flip()
+                    
+            reverse(self.backside)
+            temp = self.downside
+            self.downside = self.frontside
+            self.frontside = self.upside
+            self.upside = self.backside
+            self.backside = temp
+            CW_rotate(self.leftside)
+            ACW_rotate(self.rightside)
+            reverse(self.backside)
+
+        elif d == "right":
+            if anim:
+                angle = 0
+                while angle < 90:
+                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+                    glPushMatrix()
+                    glRotated(angle, 0, 0, 1)
+                    for fface, lface, rface, uface, dface, bface, i in zip(
+                        self.frontside,
+                        self.leftside,
+                        self.rightside,
+                        self.upside,
+                        self.downside,
+                        self.backside,
+                        range(9)
+                    ):
+                        F = Face(centre_matrix[i], fface, "y")
+                        L = Face(centre_matrix[9+i], lface, "x")
+                        R = Face(centre_matrix[18+i], rface, "x")
+                        U = Face(centre_matrix[27+i], uface, "z")
+                        D = Face(centre_matrix[36+i], dface, "z")
+                        B = Face(centre_matrix[45+i], bface, "y")
+                        F.draw()
+                        L.draw()
+                        R.draw()
+                        U.draw()
+                        D.draw()
+                        B.draw()
+                    
+                    glPopMatrix()
+                    angle += 3
+                    pygame.display.flip()
+
+            temp = self.rightside
+            self.rightside = self.frontside
+            self.frontside = self.leftside
+            self.leftside = self.backside
+            self.backside = temp
+            CW_rotate(self.downside)
+            ACW_rotate(self.upside)
+
+        elif d == "left":
+            if anim:
+                angle = 0
+                while angle < 90:
+                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+                    glPushMatrix()
+                    glRotated(angle, 0, 0, -1)
+                    for fface, lface, rface, uface, dface, bface, i in zip(
+                        self.frontside,
+                        self.leftside,
+                        self.rightside,
+                        self.upside,
+                        self.downside,
+                        self.backside,
+                        range(9)
+                    ):
+                        F = Face(centre_matrix[i], fface, "y")
+                        L = Face(centre_matrix[9+i], lface, "x")
+                        R = Face(centre_matrix[18+i], rface, "x")
+                        U = Face(centre_matrix[27+i], uface, "z")
+                        D = Face(centre_matrix[36+i], dface, "z")
+                        B = Face(centre_matrix[45+i], bface, "y")
+                        F.draw()
+                        L.draw()
+                        R.draw()
+                        U.draw()
+                        D.draw()
+                        B.draw()
+                        F.draw()
+                    
+                    glPopMatrix()
+                    angle += 3
+                    pygame.display.flip()
+                    
+            temp = self.rightside
+            self.rightside = self.backside
+            self.backside = self.leftside
+            self.leftside = self.frontside
+            self.frontside = temp
+            CW_rotate(self.upside)
+            ACW_rotate(self.downside)
+
+        elif d == "CW":
+            if anim:
+                angle = 0
+                while angle < 90:
+                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+                    glPushMatrix()
+                    glRotated(angle, 0, -1, 0)
+                    for fface, lface, rface, uface, dface, bface, i in zip(
+                        self.frontside,
+                        self.leftside,
+                        self.rightside,
+                        self.upside,
+                        self.downside,
+                        self.backside,
+                        range(9)
+                    ):
+                        F = Face(centre_matrix[i], fface, "y")
+                        L = Face(centre_matrix[9+i], lface, "x")
+                        R = Face(centre_matrix[18+i], rface, "x")
+                        U = Face(centre_matrix[27+i], uface, "z")
+                        D = Face(centre_matrix[36+i], dface, "z")
+                        B = Face(centre_matrix[45+i], bface, "y")
+                        F.draw()
+                        L.draw()
+                        R.draw()
+                        U.draw()
+                        D.draw()
+                        B.draw()
+                    
+                    glPopMatrix()
+                    angle += 3
+                    pygame.display.flip()
+                    
+            self.ROTATE("right")
+            self.ROTATE("up")
+            self.ROTATE("left")
+
+        elif d == "ACW":
+            if anim:
+                angle = 0
+                while angle < 90:
+                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+                    glPushMatrix()
+                    glRotated(angle, 0, 1, 0)
+                    for fface, lface, rface, uface, dface, bface, i in zip(
+                        self.frontside,
+                        self.leftside,
+                        self.rightside,
+                        self.upside,
+                        self.downside,
+                        self.backside,
+                        range(9)
+                    ):
+                        F = Face(centre_matrix[i], fface, "y")
+                        L = Face(centre_matrix[9+i], lface, "x")
+                        R = Face(centre_matrix[18+i], rface, "x")
+                        U = Face(centre_matrix[27+i], uface, "z")
+                        D = Face(centre_matrix[36+i], dface, "z")
+                        B = Face(centre_matrix[45+i], bface, "y")
+                        F.draw()
+                        L.draw()
+                        R.draw()
+                        U.draw()
+                        D.draw()
+                        B.draw()
+                    
+                    glPopMatrix()
+                    angle += 3
+                    pygame.display.flip()
+                    
+            self.ROTATE("down")
+            self.ROTATE("left")
+            self.ROTATE("up")
+
+    def UP(self, column = 1, mode = "none"):
+        anim = False
+        if mode == "real":   #enable animation
+            anim = True
+
+        if anim:
+            if column == 1:
+                angle = 0
+                while angle < 90:
+                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+                    
+                    for i in range(6):
+                        F = Face(centre_matrix[i//2+i+1], self.frontside[i//2+i+1], "y")
+                        U = Face(centre_matrix[27+i//2+i+1], self.upside[i//2+i+1], "z")
+                        D = Face(centre_matrix[36+i//2+i+1], self.downside[i//2+i+1], "z")
+                        B = Face(centre_matrix[45+i//2+i], self.backside[i//2+i], "y")
+                        F.draw()
+                        U.draw()
+                        D.draw()
+                        B.draw()
+                        
+                    for rface, i in zip(
+                        self.rightside,
+                        range(9)
+                    ):
+                        R = Face(centre_matrix[18+i], rface, "x")
+                        R.draw()
+                    
+                    glPushMatrix()
+                    glRotated(angle, 1, 0, 0)
+                    for i in range(0,7,3):
+                        F = Face(centre_matrix[i], self.frontside[i], "y")
+                        U = Face(centre_matrix[27+i], self.upside[i], "z")
+                        D = Face(centre_matrix[36+i], self.downside[i], "z")
+                        B = Face(centre_matrix[45+2+i], self.backside[2+i], "y")
+                        F.draw()
+                        U.draw()
+                        D.draw()
+                        B.draw()
+                        
+                    for lface, i in zip(
+                        self.leftside,
+                        range(9)
+                    ):
+                        L = Face(centre_matrix[9+i], lface, "x")
+                        L.draw()
+                    
+                    glPopMatrix()
+                    angle += 3
+                    pygame.display.flip()
+                    
+            elif column == 2:
+                angle = 0
+                while angle < 90:
+                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+                    
+                    for i in range(6):
+                        F = Face(centre_matrix[i//2+i+i%2], self.frontside[i//2+i+i%2], "y")
+                        U = Face(centre_matrix[27+i//2+i+i%2], self.upside[i//2+i+i%2], "z")
+                        D = Face(centre_matrix[36+i//2+i+i%2], self.downside[i//2+i+i%2], "z")
+                        B = Face(centre_matrix[45+i//2+i+i%2], self.backside[i//2+i+1%2], "y")
+                        F.draw()
+                        U.draw()
+                        D.draw()
+                        B.draw()
+                        
+                    for lface, rface, i in zip(
+                        self.leftside,
+                        self.rightside,
+                        range(9)
+                    ):
+                        L = Face(centre_matrix[9+i], lface, "x")
+                        R = Face(centre_matrix[18+i], rface, "x")
+                        L.draw()
+                        R.draw()
+                    
+                    glPushMatrix()
+                    glRotated(angle, 1, 0, 0)
+                    for i in range(0,7,3):
+                        F = Face(centre_matrix[i+1], self.frontside[i+1], "y")
+                        U = Face(centre_matrix[27+i+1], self.upside[i+1], "z")
+                        D = Face(centre_matrix[36+i+1], self.downside[i+1], "z")
+                        B = Face(centre_matrix[45+i+1], self.backside[i+1], "y")
+                        F.draw()
+                        U.draw()
+                        D.draw()
+                        B.draw()
+                    
+                    glPopMatrix()
+                    angle += 3
+                    pygame.display.flip()
+
+            elif column == 3:
+                angle = 0
+                while angle < 90:
+                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+                    
+                    for i in range(6):
+                        F = Face(centre_matrix[i//2+i], self.frontside[i//2+i], "y")
+                        U = Face(centre_matrix[27+i//2+i], self.upside[i//2+i], "z")
+                        D = Face(centre_matrix[36+i//2+i], self.downside[i//2+i], "z")
+                        B = Face(centre_matrix[45+i//2+i+1], self.backside[i//2+i+1], "y")
+                        F.draw()
+                        U.draw()
+                        D.draw()
+                        B.draw()
+                        
+                    for lface, i in zip(
+                        self.leftside,
+                        range(9)
+                    ):
+                        L = Face(centre_matrix[9+i], lface, "x")
+                        L.draw()
+                    
+                    glPushMatrix()
+                    glRotated(angle, 1, 0, 0)
+                    for i in range(0,7,3):
+                        F = Face(centre_matrix[i+2], self.frontside[i+2], "y")
+                        U = Face(centre_matrix[27+i+2], self.upside[i+2], "z")
+                        D = Face(centre_matrix[36+i+2], self.downside[i+2], "z")
+                        B = Face(centre_matrix[45+i], self.backside[i], "y")
+                        F.draw()
+                        U.draw()
+                        D.draw()
+                        B.draw()
+                        
+                    for rface, i in zip(
+                        self.rightside,
+                        range(9)
+                    ):
+                        R = Face(centre_matrix[18+i], rface, "x")
+                        R.draw()
+                    
+                    glPopMatrix()
+                    angle += 3
+                    pygame.display.flip()
+                    
+
+        def reverse(side):
+            for i in range(3):
+                temp = side[i]
+                side[i] = side[i+6]
+                side[i+6] = temp
+            for i in range(3):
+                temp = side[i*3]
+                side[i*3] = side[i*3+2]
+                side[i*3+2] = temp
+
+        def CW_rotate(side):
+            for i in range(2):
+                temp = side[0]
+                side[0] = side[3]
+                side[3] = side[6]
+                side[6] = side[7]
+                side[7] = side[8]
+                side[8] = side[5]
+                side[5] = side[2]
+                side[2] = side[1]
+                side[1] = temp
+
+        def ACW_rotate(side):
+            for i in range(2):
+                temp = side[0]
+                side[0] = side[1]
+                side[1] = side[2]
+                side[2] = side[5]
+                side[5] = side[8]
+                side[8] = side[7]
+                side[7] = side[6]
+                side[6] = side[3]
+                side[3] = temp
+
+        up = column - 1
+        mid = up + 3
+        down = mid + 3
+        reverse(self.backside)
+        temp = self.downside[up], self.downside[mid], self.downside[down]
+        self.downside[up], self.downside[mid], self.downside[down] = self.backside[up], self.backside[mid], self.backside[down]
+        self.backside[up], self.backside[mid], self.backside[down] = self.upside[up], self.upside[mid], self.upside[down]
+        self.upside[up], self.upside[mid], self.upside[down] = self.frontside[up], self.frontside[mid], self.frontside[down]
+        self.frontside[up], self.frontside[mid], self.frontside[down] = temp
+        reverse(self.backside)
+
+        if column == 1:
+            ACW_rotate(self.leftside)
+        if column == 3:
+            CW_rotate(self.rightside)
+
+    def DOWN(self, column = 1, mode = "none"):
+        anim = False
+        if mode == "real":   #enable animation
+            anim = True
+
+        if anim:
+            if column == 1:
+                angle = 0
+                while angle < 90:
+                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+                    
+                    for i in range(6):
+                        F = Face(centre_matrix[i//2+i+1], self.frontside[i//2+i+1], "y")
+                        U = Face(centre_matrix[27+i//2+i+1], self.upside[i//2+i+1], "z")
+                        D = Face(centre_matrix[36+i//2+i+1], self.downside[i//2+i+1], "z")
+                        B = Face(centre_matrix[45+i//2+i], self.backside[i//2+i], "y")
+                        F.draw()
+                        U.draw()
+                        D.draw()
+                        B.draw()
+                        
+                    for rface, i in zip(
+                        self.rightside,
+                        range(9)
+                    ):
+                        R = Face(centre_matrix[18+i], rface, "x")
+                        R.draw()
+                    
+                    glPushMatrix()
+                    glRotated(angle, -1, 0, 0)
+                    for i in range(0,7,3):
+                        F = Face(centre_matrix[i], self.frontside[i], "y")
+                        U = Face(centre_matrix[27+i], self.upside[i], "z")
+                        D = Face(centre_matrix[36+i], self.downside[i], "z")
+                        B = Face(centre_matrix[45+2+i], self.backside[2+i], "y")
+                        F.draw()
+                        U.draw()
+                        D.draw()
+                        B.draw()
+                        
+                    for lface, i in zip(
+                        self.leftside,
+                        range(9)
+                    ):
+                        L = Face(centre_matrix[9+i], lface, "x")
+                        L.draw()
+                    
+                    glPopMatrix()
+                    angle += 3
+                    pygame.display.flip()
+                    
+            elif column == 2:
+                angle = 0
+                while angle < 90:
+                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+                    
+                    for i in range(6):
+                        F = Face(centre_matrix[i//2+i+i%2], self.frontside[i//2+i+i%2], "y")
+                        U = Face(centre_matrix[27+i//2+i+i%2], self.upside[i//2+i+i%2], "z")
+                        D = Face(centre_matrix[36+i//2+i+i%2], self.downside[i//2+i+i%2], "z")
+                        B = Face(centre_matrix[45+i//2+i+i%2], self.backside[i//2+i+1%2], "y")
+                        F.draw()
+                        U.draw()
+                        D.draw()
+                        B.draw()
+                        
+                    for lface, rface, i in zip(
+                        self.leftside,
+                        self.rightside,
+                        range(9)
+                    ):
+                        L = Face(centre_matrix[9+i], lface, "x")
+                        R = Face(centre_matrix[18+i], rface, "x")
+                        L.draw()
+                        R.draw()
+                    
+                    glPushMatrix()
+                    glRotated(angle, -1, 0, 0)
+                    for i in range(0,7,3):
+                        F = Face(centre_matrix[i+1], self.frontside[i+1], "y")
+                        U = Face(centre_matrix[27+i+1], self.upside[i+1], "z")
+                        D = Face(centre_matrix[36+i+1], self.downside[i+1], "z")
+                        B = Face(centre_matrix[45+i+1], self.backside[i+1], "y")
+                        F.draw()
+                        U.draw()
+                        D.draw()
+                        B.draw()
+                    
+                    glPopMatrix()
+                    angle += 3
+                    pygame.display.flip()
+
+            elif column == 3:
+                angle = 0
+                while angle < 90:
+                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+                    
+                    for i in range(6):
+                        F = Face(centre_matrix[i//2+i], self.frontside[i//2+i], "y")
+                        U = Face(centre_matrix[27+i//2+i], self.upside[i//2+i], "z")
+                        D = Face(centre_matrix[36+i//2+i], self.downside[i//2+i], "z")
+                        B = Face(centre_matrix[45+i//2+i+1], self.backside[i//2+i+1], "y")
+                        F.draw()
+                        U.draw()
+                        D.draw()
+                        B.draw()
+                        
+                    for lface, i in zip(
+                        self.leftside,
+                        range(9)
+                    ):
+                        L = Face(centre_matrix[9+i], lface, "x")
+                        L.draw()
+                    
+                    glPushMatrix()
+                    glRotated(angle, -1, 0, 0)
+                    for i in range(0,7,3):
+                        F = Face(centre_matrix[i+2], self.frontside[i+2], "y")
+                        U = Face(centre_matrix[27+i+2], self.upside[i+2], "z")
+                        D = Face(centre_matrix[36+i+2], self.downside[i+2], "z")
+                        B = Face(centre_matrix[45+i], self.backside[i], "y")
+                        F.draw()
+                        U.draw()
+                        D.draw()
+                        B.draw()
+                        
+                    for rface, i in zip(
+                        self.rightside,
+                        range(9)
+                    ):
+                        R = Face(centre_matrix[18+i], rface, "x")
+                        R.draw()
+                    
+                    glPopMatrix()
+                    angle += 3
+                    pygame.display.flip()
+                    
+        self.ROTATE("right")
+        self.ROTATE("right")
+        self.UP(4-column)
+        self.ROTATE("left")
+        self.ROTATE("left")
+
+    def RIGHT(self, row = 1, mode = "none"):
+        anim = False
+        if mode == "real":   #enable animation
+            anim = True
+
+        if anim:
+            if row == 1:
+                angle = 0
+                while angle < 90:
+                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+                    
+                    for i in range(3, 9):
+                        F = Face(centre_matrix[i], self.frontside[i], "y")
+                        L = Face(centre_matrix[9+i], self.leftside[i], "x")
+                        R = Face(centre_matrix[18+i], self.rightside[i], "x")
+                        B = Face(centre_matrix[45+i], self.backside[i], "y")
+                        F.draw()
+                        L.draw()
+                        R.draw()
+                        B.draw()
+                        
+                    for dface, i in zip(
+                        self.downside,
+                        range(9)
+                    ):
+                        D = Face(centre_matrix[36+i], dface, "z")
+                        D.draw()
+                    
+                    glPushMatrix()
+                    glRotated(angle, 0, 0, 1)
+                    for i in range(3):
+                        F = Face(centre_matrix[i], self.frontside[i], "y")
+                        L = Face(centre_matrix[9+i], self.leftside[i], "x")
+                        R = Face(centre_matrix[18+i], self.rightside[i], "x")
+                        B = Face(centre_matrix[45+i], self.backside[i], "y")
+                        F.draw()
+                        L.draw()
+                        R.draw()
+                        B.draw()
+                        
+                    for uface, i in zip(
+                        self.upside,
+                        range(9)
+                    ):
+                        U = Face(centre_matrix[27+i], uface, "z")
+                        U.draw()
+                    
+                    glPopMatrix()
+                    angle += 3
+                    pygame.display.flip()
+                    
+            elif row == 2:
+                angle = 0
+                while angle < 90:
+                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+                    
+                    for i in range(9):
+                        if i > 2 and i < 6:
+                            continue
+                        F = Face(centre_matrix[i], self.frontside[i], "y")
+                        L = Face(centre_matrix[9+i], self.leftside[i], "x")
+                        R = Face(centre_matrix[18+i], self.rightside[i], "x")
+                        B = Face(centre_matrix[45+i], self.backside[i], "y")
+                        F.draw()
+                        L.draw()
+                        R.draw()
+                        B.draw()
+                        
+                    for uface, dface, i in zip(
+                        self.upside,
+                        self.downside,
+                        range(9)
+                    ):
+                        U = Face(centre_matrix[27+i], uface, "z")
+                        D = Face(centre_matrix[36+i], dface, "z")
+                        U.draw()
+                        D.draw()
+                    
+                    glPushMatrix()
+                    glRotated(angle, 0, 0, 1)
+                    for i in range(3, 6):
+                        F = Face(centre_matrix[i], self.frontside[i], "y")
+                        L = Face(centre_matrix[9+i], self.leftside[i], "x")
+                        R = Face(centre_matrix[18+i], self.rightside[i], "x")
+                        B = Face(centre_matrix[45+i], self.backside[i], "y")
+                        F.draw()
+                        L.draw()
+                        R.draw()
+                        B.draw()
+
+                    glPopMatrix()
+                    angle += 3
+                    pygame.display.flip()
+
+            elif row == 3:
+                angle = 0
+                while angle < 90:
+                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+                    
+                    for i in range(6):
+                        F = Face(centre_matrix[i], self.frontside[i], "y")
+                        L = Face(centre_matrix[9+i], self.leftside[i], "x")
+                        R = Face(centre_matrix[18+i], self.rightside[i], "x")
+                        B = Face(centre_matrix[45+i], self.backside[i], "y")
+                        F.draw()
+                        L.draw()
+                        R.draw()
+                        B.draw()
+                        
+                    for uface, i in zip(
+                        self.upside,
+                        range(9)
+                    ):
+                        U = Face(centre_matrix[27+i], uface, "z")
+                        U.draw()
+                    
+                    glPushMatrix()
+                    glRotated(angle, 0, 0, 1)
+                    for i in range(6, 9):
+                        F = Face(centre_matrix[i], self.frontside[i], "y")
+                        L = Face(centre_matrix[9+i], self.leftside[i], "x")
+                        R = Face(centre_matrix[18+i], self.rightside[i], "x")
+                        B = Face(centre_matrix[45+i], self.backside[i], "y")
+                        F.draw()
+                        L.draw()
+                        R.draw()
+                        B.draw()
+                        
+                    for dface, i in zip(
+                        self.downside,
+                        range(9)
+                    ):
+                        D = Face(centre_matrix[36+i], dface, "z")
+                        D.draw()
+                    
+                    glPopMatrix()
+                    angle += 3
+                    pygame.display.flip()
+                    
+        self.ROTATE("ACW")
+        self.UP(row)
+        self.ROTATE("CW")
+
+    def LEFT(self, row = 1, mode = "none"):
+        anim = False
+        if mode == "real":   #enable animation
+            anim = True
+
+        if anim:
+            if row == 1:
+                angle = 0
+                while angle < 90:
+                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+                    
+                    for i in range(3, 9):
+                        F = Face(centre_matrix[i], self.frontside[i], "y")
+                        L = Face(centre_matrix[9+i], self.leftside[i], "x")
+                        R = Face(centre_matrix[18+i], self.rightside[i], "x")
+                        B = Face(centre_matrix[45+i], self.backside[i], "y")
+                        F.draw()
+                        L.draw()
+                        R.draw()
+                        B.draw()
+                        
+                    for dface, i in zip(
+                        self.downside,
+                        range(9)
+                    ):
+                        D = Face(centre_matrix[36+i], dface, "z")
+                        D.draw()
+                    
+                    glPushMatrix()
+                    glRotated(angle, 0, 0, -1)
+                    for i in range(3):
+                        F = Face(centre_matrix[i], self.frontside[i], "y")
+                        L = Face(centre_matrix[9+i], self.leftside[i], "x")
+                        R = Face(centre_matrix[18+i], self.rightside[i], "x")
+                        B = Face(centre_matrix[45+i], self.backside[i], "y")
+                        F.draw()
+                        L.draw()
+                        R.draw()
+                        B.draw()
+                        
+                    for uface, i in zip(
+                        self.upside,
+                        range(9)
+                    ):
+                        U = Face(centre_matrix[27+i], uface, "z")
+                        U.draw()
+                    
+                    glPopMatrix()
+                    angle += 3
+                    pygame.display.flip()
+                    
+            elif row == 2:
+                angle = 0
+                while angle < 90:
+                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+                    
+                    for i in range(9):
+                        if i > 2 and i < 6:
+                            continue
+                        F = Face(centre_matrix[i], self.frontside[i], "y")
+                        L = Face(centre_matrix[9+i], self.leftside[i], "x")
+                        R = Face(centre_matrix[18+i], self.rightside[i], "x")
+                        B = Face(centre_matrix[45+i], self.backside[i], "y")
+                        F.draw()
+                        L.draw()
+                        R.draw()
+                        B.draw()
+                        
+                    for uface, dface, i in zip(
+                        self.upside,
+                        self.downside,
+                        range(9)
+                    ):
+                        U = Face(centre_matrix[27+i], uface, "z")
+                        D = Face(centre_matrix[36+i], dface, "z")
+                        U.draw()
+                        D.draw()
+                    
+                    glPushMatrix()
+                    glRotated(angle, 0, 0, -1)
+                    for i in range(3, 6):
+                        F = Face(centre_matrix[i], self.frontside[i], "y")
+                        L = Face(centre_matrix[9+i], self.leftside[i], "x")
+                        R = Face(centre_matrix[18+i], self.rightside[i], "x")
+                        B = Face(centre_matrix[45+i], self.backside[i], "y")
+                        F.draw()
+                        L.draw()
+                        R.draw()
+                        B.draw()
+
+                    glPopMatrix()
+                    angle += 3
+                    pygame.display.flip()
+
+            elif row == 3:
+                angle = 0
+                while angle < 90:
+                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+                    
+                    for i in range(6):
+                        F = Face(centre_matrix[i], self.frontside[i], "y")
+                        L = Face(centre_matrix[9+i], self.leftside[i], "x")
+                        R = Face(centre_matrix[18+i], self.rightside[i], "x")
+                        B = Face(centre_matrix[45+i], self.backside[i], "y")
+                        F.draw()
+                        L.draw()
+                        R.draw()
+                        B.draw()
+                        
+                    for uface, i in zip(
+                        self.upside,
+                        range(9)
+                    ):
+                        U = Face(centre_matrix[27+i], uface, "z")
+                        U.draw()
+                    
+                    glPushMatrix()
+                    glRotated(angle, 0, 0, -1)
+                    for i in range(6, 9):
+                        F = Face(centre_matrix[i], self.frontside[i], "y")
+                        L = Face(centre_matrix[9+i], self.leftside[i], "x")
+                        R = Face(centre_matrix[18+i], self.rightside[i], "x")
+                        B = Face(centre_matrix[45+i], self.backside[i], "y")
+                        F.draw()
+                        L.draw()
+                        R.draw()
+                        B.draw()
+                        
+                    for dface, i in zip(
+                        self.downside,
+                        range(9)
+                    ):
+                        D = Face(centre_matrix[36+i], dface, "z")
+                        D.draw()
+                    
+                    glPopMatrix()
+                    angle += 3
+                    pygame.display.flip()
+                    
+        self.ROTATE("CW")
+        self.UP(4 - row)
+        self.ROTATE("ACW")
+
+    def CW(self, layer = 1, mode = "none"):
+        anim = False
+        if mode == "real":   #enable animation
+            anim = True
+
+        if anim:
+            if layer == 1:
+                angle = 0
+                while angle < 90:
+                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+                    
+                    for i in range(6):
+                        L = Face(centre_matrix[9+i//2+i], self.leftside[i//2+i], "x")
+                        R = Face(centre_matrix[18+i//2+i+1], self.rightside[i//2+i+1], "x")
+                        U = Face(centre_matrix[27+i], self.upside[i], "z")
+                        D = Face(centre_matrix[36+i+3], self.downside[i+3], "z")
+                        L.draw()
+                        R.draw()
+                        U.draw()
+                        D.draw()
+                    
+                    for bface, i in zip(
+                        self.backside,
+                        range(9)
+                    ):
+                        B = Face(centre_matrix[45+i], bface, "y")
+                        B.draw()
+                    
+                    glPushMatrix()
+                    glRotated(angle, 0, -1, 0)
+                    for i in range(3):
+                        L = Face(centre_matrix[9+3*i+2], self.leftside[3*i+2], "x")
+                        R = Face(centre_matrix[18+3*i], self.rightside[3*i], "x")
+                        U = Face(centre_matrix[27+6+i], self.upside[6+i], "z")
+                        D = Face(centre_matrix[36+i], self.downside[i], "z")
+                        L.draw()
+                        R.draw()
+                        U.draw()
+                        D.draw()
+                    
+                    for fface, i in zip(
+                        self.frontside,
+                        range(9)
+                    ):
+                        F = Face(centre_matrix[i], fface, "y")
+                        F.draw()
+                    
+                    glPopMatrix()
+                    angle += 3
+                    pygame.display.flip()
+                    
+            elif layer == 2:
+                angle = 0
+                while angle < 90:
+                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+                    
+                    for i in range(6):
+                        L = Face(centre_matrix[9+i//2+i+i%2], self.leftside[i//2+i+i%2], "x")
+                        R = Face(centre_matrix[18+i//2+i+i%2], self.rightside[i//2+i+i%2], "x")
+                        U = Face(centre_matrix[27+i+i//3*3], self.upside[i+i//3*3], "z")
+                        D = Face(centre_matrix[36+i+i//3*3], self.downside[i+i//3*3], "z")
+                        L.draw()
+                        R.draw()
+                        U.draw()
+                        D.draw()
+                    
+                    for fface, bface, i in zip(
+                        self.frontside,
+                        self.backside,
+                        range(9)
+                    ):
+                        F = Face(centre_matrix[i], fface, "y")
+                        B = Face(centre_matrix[45+i], bface, "y")
+                        F.draw()
+                        B.draw()
+                    
+                    glPushMatrix()
+                    glRotated(angle, 0, -1, 0)
+                    for i in range(3):
+                        L = Face(centre_matrix[9+3*i+1], self.leftside[3*i+1], "x")
+                        R = Face(centre_matrix[18+3*i+1], self.rightside[3*i+1], "x")
+                        U = Face(centre_matrix[27+3+i], self.upside[3+i], "z")
+                        D = Face(centre_matrix[36+3+i], self.downside[3+i], "z")
+                        L.draw()
+                        R.draw()
+                        U.draw()
+                        D.draw()
+                    
+                    glPopMatrix()
+                    angle += 3
+                    pygame.display.flip()
+
+            elif layer == 3:
+                angle = 0
+                while angle < 90:
+                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+                    
+                    for i in range(6):
+                        L = Face(centre_matrix[9+i//2+i+1], self.leftside[i//2+i+1], "x")
+                        R = Face(centre_matrix[18+i//2+i], self.rightside[i//2+i], "x")
+                        U = Face(centre_matrix[27+i+3], self.upside[i+3], "z")
+                        D = Face(centre_matrix[36+i], self.downside[i], "z")
+                        L.draw()
+                        R.draw()
+                        U.draw()
+                        D.draw()
+                    
+                    for fface, i in zip(
+                        self.frontside,
+                        range(9)
+                    ):
+                        F = Face(centre_matrix[i], fface, "y")
+                        F.draw()
+                    
+                    glPushMatrix()
+                    glRotated(angle, 0, -1, 0)
+                    for i in range(3):
+                        L = Face(centre_matrix[9+3*i], self.leftside[3*i], "x")
+                        R = Face(centre_matrix[18+3*i+2], self.rightside[3*i+2], "x")
+                        U = Face(centre_matrix[27+i], self.upside[i], "z")
+                        D = Face(centre_matrix[36+i+6], self.downside[i+6], "z")
+                        L.draw()
+                        R.draw()
+                        U.draw()
+                        D.draw()
+                    
+                    for bface, i in zip(
+                        self.backside,
+                        range(9)
+                    ):
+                        B = Face(centre_matrix[45+i], bface, "y")
+                        B.draw()
+                    
+                    glPopMatrix()
+                    angle += 3
+                    pygame.display.flip()
+
+        self.ROTATE("right")
+        self.UP(4 - layer)
+        self.ROTATE("left")
+
+    def ACW(self, layer = 1, mode = "none"):
+        anim = False
+        if mode == "real":   #enable animation
+            anim = True
+
+        if anim:
+            if layer == 1:
+                angle = 0
+                while angle < 90:
+                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+                    
+                    for i in range(6):
+                        L = Face(centre_matrix[9+i//2+i], self.leftside[i//2+i], "x")
+                        R = Face(centre_matrix[18+i//2+i+1], self.rightside[i//2+i+1], "x")
+                        U = Face(centre_matrix[27+i], self.upside[i], "z")
+                        D = Face(centre_matrix[36+i+3], self.downside[i+3], "z")
+                        L.draw()
+                        R.draw()
+                        U.draw()
+                        D.draw()
+                    
+                    for bface, i in zip(
+                        self.backside,
+                        range(9)
+                    ):
+                        B = Face(centre_matrix[45+i], bface, "y")
+                        B.draw()
+                    
+                    glPushMatrix()
+                    glRotated(angle, 0, 1, 0)
+                    for i in range(3):
+                        L = Face(centre_matrix[9+3*i+2], self.leftside[3*i+2], "x")
+                        R = Face(centre_matrix[18+3*i], self.rightside[3*i], "x")
+                        U = Face(centre_matrix[27+6+i], self.upside[6+i], "z")
+                        D = Face(centre_matrix[36+i], self.downside[i], "z")
+                        L.draw()
+                        R.draw()
+                        U.draw()
+                        D.draw()
+                    
+                    for fface, i in zip(
+                        self.frontside,
+                        range(9)
+                    ):
+                        F = Face(centre_matrix[i], fface, "y")
+                        F.draw()
+                    
+                    glPopMatrix()
+                    angle += 3
+                    pygame.display.flip()
+                    
+            elif layer == 2:
+                angle = 0
+                while angle < 90:
+                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+                    
+                    for i in range(6):
+                        L = Face(centre_matrix[9+i//2+i+i%2], self.leftside[i//2+i+i%2], "x")
+                        R = Face(centre_matrix[18+i//2+i+i%2], self.rightside[i//2+i+i%2], "x")
+                        U = Face(centre_matrix[27+i+i//3*3], self.upside[i+i//3*3], "z")
+                        D = Face(centre_matrix[36+i+i//3*3], self.downside[i+i//3*3], "z")
+                        L.draw()
+                        R.draw()
+                        U.draw()
+                        D.draw()
+                    
+                    for fface, bface, i in zip(
+                        self.frontside,
+                        self.backside,
+                        range(9)
+                    ):
+                        F = Face(centre_matrix[i], fface, "y")
+                        B = Face(centre_matrix[45+i], bface, "y")
+                        F.draw()
+                        B.draw()
+                    
+                    glPushMatrix()
+                    glRotated(angle, 0, 1, 0)
+                    for i in range(3):
+                        L = Face(centre_matrix[9+3*i+1], self.leftside[3*i+1], "x")
+                        R = Face(centre_matrix[18+3*i+1], self.rightside[3*i+1], "x")
+                        U = Face(centre_matrix[27+3+i], self.upside[3+i], "z")
+                        D = Face(centre_matrix[36+3+i], self.downside[3+i], "z")
+                        L.draw()
+                        R.draw()
+                        U.draw()
+                        D.draw()
+                    
+                    glPopMatrix()
+                    angle += 3
+                    pygame.display.flip()
+
+            elif layer == 3:
+                angle = 0
+                while angle < 90:
+                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+                    
+                    for i in range(6):
+                        L = Face(centre_matrix[9+i//2+i+1], self.leftside[i//2+i+1], "x")
+                        R = Face(centre_matrix[18+i//2+i], self.rightside[i//2+i], "x")
+                        U = Face(centre_matrix[27+i+3], self.upside[i+3], "z")
+                        D = Face(centre_matrix[36+i], self.downside[i], "z")
+                        L.draw()
+                        R.draw()
+                        U.draw()
+                        D.draw()
+                    
+                    for fface, i in zip(
+                        self.frontside,
+                        range(9)
+                    ):
+                        F = Face(centre_matrix[i], fface, "y")
+                        F.draw()
+                    
+                    glPushMatrix()
+                    glRotated(angle, 0, 1, 0)
+                    for i in range(3):
+                        L = Face(centre_matrix[9+3*i], self.leftside[3*i], "x")
+                        R = Face(centre_matrix[18+3*i+2], self.rightside[3*i+2], "x")
+                        U = Face(centre_matrix[27+i], self.upside[i], "z")
+                        D = Face(centre_matrix[36+i+6], self.downside[i+6], "z")
+                        L.draw()
+                        R.draw()
+                        U.draw()
+                        D.draw()
+                    
+                    for bface, i in zip(
+                        self.backside,
+                        range(9)
+                    ):
+                        B = Face(centre_matrix[45+i], bface, "y")
+                        B.draw()
+                    
+                    glPopMatrix()
+                    angle += 3
+                    pygame.display.flip()
+                    
+        self.ROTATE("left")
+        self.UP(layer)
+        self.ROTATE("right")
+
+    def SHUFFLE(self):
+        for i in range(50):
+            op = random.randint(1,6)
+            random.seed()
+            i = random.randint(1,3)
+            if op == 1:
+                self.UP(i, "real")
+            elif op == 2:
+                self.DOWN(i, "real")
+            elif op == 3:
+                self.LEFT(i, "real")
+            elif op == 4:
+                self.RIGHT(i, "real")
+            elif op == 5:
+                self.CW(i, "real")
+            else:
+                self.ACW(i, "real")
+
+    def WHITE_FLOWER(self):
+        
+        for i in range(4):
+            if self.upside[4] == "B":
+                break
+            self.ROTATE("up", "real")
+            
+        for i in range(4):
+            if self.upside[4] == "B":
+                break
+            self.ROTATE("ACW", "real")
+        
+        def easy_middle():
+            if self.upside[1] != "W":
+                if self.leftside[3] == "W":
+                    self.CW(3, "real")
+                elif self.rightside[5] == "W":
+                    self.ACW(3, "real")
+                elif self.downside[7] == "W":
+                    self.CW(3, "real")
+                    self.CW(3, "real")
+    
+            if self.upside[3] != "W":
+                if self.frontside[3] == "W":
+                    self.UP(1, "real")
+                elif self.backside[5] == "W":
+                    self.DOWN(1, "real")
+                elif self.downside[3] == "W":
+                    self.UP(1, "real")
+                    self.UP(1, "real")
+
+            if self.upside[5] != "W":
+                if self.frontside[5] == "W":
+                    self.UP(3, "real")
+                elif self.backside[3] == "W":
+                    self.DOWN(3, "real")
+                elif self.downside[5] == "W":
+                    self.UP(3, "real")
+                    self.UP(3, "real")
+
+            if self.upside[7] != "W":
+                if self.leftside[5] == "W":
+                    self.CW(1, "real")
+                elif self.rightside[3] == "W":
+                    self.ACW(1, "real")
+                elif self.downside[1] == "W":
+                    self.CW(1, "real")
+                    self.CW(1, "real")
+
+        for i in range(4):
+            for i in range(4):
+                easy_middle()
+            self.RIGHT(1, "real")
+
+        for i in range(4):
+            if self.upside[7] != "W":
+                if self.frontside[1] == "W":
+                    self.CW(1, "real")
+                    self.LEFT(2, "real")
+                    self.CW(1, "real")
+                elif self.downside[1] == "W" or self.downside[3] == "W" or self.downside[5] == "W" or self.downside[7] == "W":
+                    while self.downside[1] != "W":
+                        self.RIGHT(3, "real")
+                    self.CW(1, "real")
+                    self.CW(1, "real")
+                else:
+                    while self.rightside[7] != "W":
+                        self.RIGHT(3, "real")
+                    self.DOWN(2, "real")
+                    self.LEFT(3, "real")
+                    self.UP(2, "real")
+            self.ROTATE("right", "real")
+            
+
+    def WHITE_CROSS(self):
+        
+        for i in range(4):
+            if self.upside[4] == "B":
+                break
+            self.ROTATE("up", "real")
+            
+        for i in range(4):
+            if self.upside[4] == "B":
+                break
+            self.ROTATE("ACW", "real")
+
+        for i in range(4):
+            while self.frontside[1] != self.frontside[4]:
+                self.RIGHT(2, "real")
+                self.RIGHT(3, "real")
+            self.CW(1, "real")
+            self.CW(1, "real")
+            self.ROTATE("right", "real")
+
+    def LAYER_ONE(self):
+        
+        for i in range(4):
+            if self.upside[4] == "B":
+                break
+            self.ROTATE("up", "real")
+            
+        for i in range(4):
+            if self.upside[4] == "B":
+                break
+            self.ROTATE("ACW", "real")
+
+        def easy_upper():
+            for i in range(4):
+                if self.frontside[0] == "W":
+                    while self.leftside[2] != self.leftside[4]:
+                        self.RIGHT(2, "real")
+                        self.RIGHT(3, "real")
+                    self.CW(1, "real")
+                    self.LEFT(1, "real")
+                    self.ACW(1, "real")
+                if self.frontside[2] == "W":
+                    while self.rightside[0] != self.rightside[4]:
+                        self.RIGHT(2, "real")
+                        self.RIGHT(3, "real")
+                    self.ACW(1, "real")
+                    self.RIGHT(1, "real")
+                    self.CW(1, "real")
+                self.ROTATE("right", "real")
+
+        def adjust():
+            if self.upside[6] == "W":
+                while self.downside[0] != "W":
+                    self.RIGHT(2, "real")
+                    self.RIGHT(3, "real")
+                self.UP(1, "real")
+                self.RIGHT(1, "real")
+                self.RIGHT(1, "real")
+                self.DOWN(1, "real")
+            elif self.frontside[8] == "W":
+                self.UP(3, "real")
+                self.RIGHT(1, "real")
+                self.DOWN(3, "real")
+            elif self.frontside[6] == "W":
+                self.UP(1, "real")
+                self.LEFT(1, "real")
+                self.DOWN(1, "real")
+
+        def check_done():
+            if self.downside[0] == "W" and self.downside[2] == "W" and self.downside[6] == "W" and self.downside[8] == "W":
+                return True
+            else:
+                return False
+
+        for i in range(30):
+            if check_done():
+                break
+            easy_upper()
+            adjust()
+            self.ROTATE("right", "real")
+
+
+    def LAYER_TWO(self):
+        
+        for i in range(4):
+            if self.upside[4] == "B":
+                break
+            self.ROTATE("up", "real")
+            
+        for i in range(4):
+            if self.upside[4] == "B":
+                break
+            self.ROTATE("ACW", "real")
+
+        def phase_one():
+            
+            while self.upside[7] != self.frontside[4]:
+                self.RIGHT(2, "real")
+                self.RIGHT(3, "real")
+
+            if self.frontside[1] == self.rightside[4]:
+                for i in range(3):
+                    self.RIGHT(1, "real")
+                    self.DOWN(3, "real")
+                for i in range(2):
+                    self.LEFT(1, "real")
+                    self.UP(3, "real")
+                    
+            elif self.frontside[1] == self.leftside[4]:
+                for i in range(3):
+                    self.LEFT(1, "real")
+                    self.DOWN(1, "real")
+                for i in range(2):
+                    self.RIGHT(1, "real")
+                    self.UP(1, "real")
+
+        def phase_two():
+            for i in range(3):
+                self.RIGHT(1, "real")
+                self.DOWN(3, "real")
+            for i in range(2):
+                self.LEFT(1, "real")
+                self.UP(3, "real")
+            for i in range(4):
+                if self.frontside[1] == "B" or self.upside[7] == "B":
+                    self.ROTATE("right", "real")
+                else:
+                    phase_one()
+
+        for i in range(18):
+            if self.frontside[1] == "B" or self.upside[7] == "B":
+                self.ROTATE("right", "real")
+            else:
+                phase_one()
+
+        for i in range(4):
+            if self.frontside[5] != self.frontside[4]:
+                phase_two()
+            self.ROTATE("right", "real")
+
+    def BLUE_CROSS(self):
+        
+        for i in range(4):
+            if self.upside[4] == "B":
+                break
+            self.ROTATE("up", "real")
+            
+        for i in range(4):
+            if self.upside[4] == "B":
+                break
+            self.ROTATE("ACW", "real")
+
+        def steps():
+            self.CW(3, "real")
+            self.RIGHT(1, "real")
+            self.DOWN(3, "real")
+            self.LEFT(1, "real")
+            self.UP(3, "real")
+            self.ACW(3, "real")
+
+        def check_90():
+            if (self.upside[1] == "B" and self.upside[3] == "B") or (self.upside[1] == "B" and self.upside[5] == "B") or (self.upside[7] == "B" and self.upside[3] == "B") or (self.upside[7] == "B" and self.upside[5] == "B"):
+                return True
+            else:
+                return False
+
+        while(not check_90()):
+            steps()
+
+        while not (self.upside[7] == "B" and self.upside[3] == "B"):
+            self.ROTATE("right", "real")
+
+        steps()
+    
+
+    def BLUE_FACE(self):
+        
+        for i in range(4):
+            if self.upside[4] == "B":
+                break
+            self.ROTATE("up", "real")
+            
+        for i in range(4):
+            if self.upside[4] == "B":
+                break
+            self.ROTATE("ACW", "real")
+
+        def steps():
+            self.RIGHT(1, "real")
+            self.DOWN(3, "real")
+            self.LEFT(1, "real")
+            self.UP(3, "real")
+
+        self.ROTATE("ACW", "real")
+        for i in range(4):
+            while self.leftside[2] != "B":
+                steps()
+            self.UP(1, "real")
+    
+    
+    def LAYER_THREE_EDGES_ADJUST(self):
+        
+        for i in range(4):
+            if self.upside[4] == "B":
+                break
+            self.ROTATE("up", "real")
+            
+        for i in range(4):
+            if self.upside[4] == "B":
+                break
+            self.ROTATE("ACW", "real")
+            
+        def check_pos():
+            counter = 0
+            for side in (self.frontside, self.leftside, self.rightside, self.backside):
+                if side[1] == side[4]:
+                    counter += 1
+            return counter
+
+        for i in range(4):
+            if check_pos() != 1:
+                self.RIGHT(1, "real")
+            else:
+                break
+
+        if check_pos() != 1:
+            self.DOWN(3, "real")
+            self.RIGHT(1, "real")
+            for i in range(3):
+                self.RIGHT(1, "real")
+                self.DOWN(3, "real")
+            for i in range(2):
+                self.LEFT(1, "real")
+                self.UP(3, "real")
+            self.RIGHT(1, "real")
+            self.UP(3, "real")
+            for i in range(4):
+                if check_pos() != 1:
+                    self.RIGHT(1, "real")
+                else:
+                    break
+
+        for i in range(4):
+            if self.backside[1] != self.backside[4]:
+                self.ROTATE("right", "real")
+            else:
+                break
+
+
+    def LAYER_THREE_EDGES(self):
+        
+        for i in range(4):
+            if self.upside[4] == "B":
+                break
+            self.ROTATE("up", "real")
+            
+        for i in range(4):
+            if self.upside[4] == "B":
+                break
+            self.ROTATE("ACW", "real")
+
+        def check_edge():
+            for side in (self.frontside, self.leftside, self.rightside, self.backside):
+                if side[1] != side[4]:
+                    return False
+            return True
+
+        while not check_edge():
+            self.DOWN(3, "real")
+            self.RIGHT(1, "real")
+            for i in range(3):
+                self.RIGHT(1, "real")
+                self.DOWN(3, "real")
+            for i in range(2):
+                self.LEFT(1, "real")
+                self.UP(3, "real")
+            self.RIGHT(1, "real")
+            self.UP(3, "real")
+
+
+    def LAYER_THREE(self):
+
+        for i in range(4):
+            if self.upside[4] == "B":
+                break
+            self.ROTATE("up", "real")
+            
+        for i in range(4):
+            if self.upside[4] == "B":
+                break
+            self.ROTATE("ACW", "real")
+
+        self.ROTATE("ACW", "real")
+
+        def steps_2():
+            for i in range(3):
+                self.RIGHT(1, "real")
+                self.DOWN(3, "real")
+                self.LEFT(1, "real")
+                self.UP(3, "real")
+        
+        while self.frontside[0] == self.frontside[4]:
+            self.ROTATE("UP", "real")
+
+        steps_2()
+        for i in range(4):
+            if (self.frontside[2] == self.backside[4] and self.upside[8] == self.upside[4]) or (self.frontside[2] == self.upside[4] and self.upside[8] == self.backside[4]):
+                self.DOWN(1, "real")
+                steps_2()
+                self.UP(1, "real")
+            
+            elif (self.frontside[2] == self.frontside[4] and self.upside[8] == self.downside[4]) or (self.frontside[2] == self.downside[4] and self.upside[8] == self.frontside[4]):
+                self.UP(1, "real")
+                steps_2()
+                self.DOWN(1, "real")
+            
+            elif (self.frontside[2] == self.backside[4] and self.upside[8] == self.downside[4]) or (self.frontside[2] == self.downside[4] and self.upside[8] == self.backside[4]):
+                self.DOWN(1, "real")
+                self.DOWN(1, "real")
+                steps_2()
+                self.UP(1, "real")
+                self.UP(1, "real")
+
+
+    def SOLVE(self):
+        self.WHITE_FLOWER()
+        self.WHITE_CROSS()
+
+def main():
+    
+    cube = Rubic()
+    index = 1
+
+    # pygame gui
+    pygame.init()
+    pygame.font.init()
+    font = pygame.font.SysFont('lucinda console', 64)
+    display = (800, 600)
+    pygame.display.set_mode(display, DOUBLEBUF | OPENGL)
+    
+    gluPerspective(45, (display[0]/display[1]), 0.1, 50.0)
+    glTranslatef(3.0, 0.0, -20.0)
+    glRotatef(-60, 1, 0, 0)
+    glRotatef(-160, 0, 0, 1)
+    
+    glEnable(GL_DEPTH_TEST)
+    glDepthFunc(GL_LESS)
+
+    while True:
+
+        # keys
+        for event in pygame.event.get():
+
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+            if event.type == pygame.KEYDOWN:
+                
+                if event.key == pygame.K_w:
+                    cube.ROTATE("up", "real")
+
+                if event.key == pygame.K_a:
+                    cube.ROTATE("left", "real")
+
+                if event.key == pygame.K_d:
+                    cube.ROTATE("right", "real")
+                    
+                if event.key == pygame.K_s:
+                    cube.ROTATE("down", "real")
+
+                if event.key == pygame.K_q:
+                    cube.ROTATE("ACW", "real")
+
+                if event.key == pygame.K_e:
+                    cube.ROTATE("CW", "real")
+
+                if event.key == pygame.K_i:
+                    cube.UP(index,"real")
+
+                if event.key == pygame.K_j:
+                    cube.LEFT(index,"real")
+
+                if event.key == pygame.K_k:
+                    cube.DOWN(index,"real")
+
+                if event.key == pygame.K_l:
+                    cube.RIGHT(index,"real")
+
+                if event.key == pygame.K_u:
+                    cube.ACW(index,"real")
+
+                if event.key == pygame.K_o:
+                    cube.CW(index,"real")
+
+                if event.key == pygame.K_1:
+                    index = 1
+
+                if event.key == pygame.K_2:
+                    index = 2
+
+                if event.key == pygame.K_3:
+                    index = 3
+
+                if event.key == pygame.K_r:
+                    cube.SHUFFLE()
+
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
+        for fface, lface, rface, uface, dface, bface, i in zip(
+            cube.frontside,
+            cube.leftside,
+            cube.rightside,
+            cube.upside,
+            cube.downside,
+            cube.backside,
+            range(9)
+        ):
+            F = Face(centre_matrix[i], fface, "y")
+            L = Face(centre_matrix[9+i], lface, "x")
+            R = Face(centre_matrix[18+i], rface, "x")
+            U = Face(centre_matrix[27+i], uface, "z")
+            D = Face(centre_matrix[36+i], dface, "z")
+            B = Face(centre_matrix[45+i], bface, "y")
+            F.draw()
+            L.draw()
+            R.draw()
+            U.draw()
+            D.draw()
+            B.draw()
+            F.draw()
+
+        pygame.display.flip()
+        pygame.time.wait(20)
+
+
+if __name__ == '__main__':
+    main()
+
