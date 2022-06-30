@@ -25,7 +25,7 @@
       3. The code uses Pygame library. So Pygame should be installed. Just open cmd and run the following code: $ pip install pygame
       
       B-2 Run the code
-      You can copy and paste all the code from "main code" to your IDE. link: https://github.com/cchdood/Rubic-s-Cube/blob/main/main%20code. 
+      You can copy and paste all the code from "main code" to your IDE. link: https://github.com/cchdood/Rubic-s-Cube/blob/main/main%20code
 
 # C. Control
       You can manually change the view of the cube or do certain operation with the hotkeys:
