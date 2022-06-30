@@ -2,7 +2,7 @@
 # made by 陳郁安 (Student ID. B10703014) from National Taiwan University
 
 # A. Abstract.
-    This is a python code written with pygame and Opengl to simulate the operation and solving algorithm of Rubic's Cube.
+    "3D Rubic's Cube" is a python code written with pygame and Opengl to simulate the operation and solving algorithm of Rubic's Cube.
     The program wasn't written to demonstrate 3D rubic's cube originally. The original program is shorter, with about 200~300 lines, using print() function to
     demonstrate the shape of the cube, and I wrote that just to deal with a "self-design program" assignment in Program Design course. 
     Simple though, the original program offers all basic function (except solving the cube) to operate the cube, so, I taught myself how to write 3D model using
