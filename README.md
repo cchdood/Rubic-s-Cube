@@ -10,7 +10,7 @@
     so I utilized pygame to make it happened. Lastly, I wrote a solving algorithm for the cube, just to make the project more completed. Combining the original code,
     key-mapping setting, 3D model and animation programing, solving algorithm and other adjustment, the new code contains about 1800~1900 lines. It takes some time
     and effort though, but worth it!
-    Here is the link of the original code if you're interested: 
+    The original code is in "Original Code (Concept)", if you're interested :)
 
 # B. Requirement & Guide to run the code.
     B-1 Requirement
