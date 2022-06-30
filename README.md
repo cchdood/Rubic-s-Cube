@@ -54,3 +54,5 @@
       "R" key - Shuffle the cube
       "Home" key - Solve the cube (the solving algorithm I use is not the most efficient one, so it takes some time to solve)
       
+# D. Control Guide and solving showcase:
+      https://www.youtube.com/watch?v=LVUK65qG2_Q
