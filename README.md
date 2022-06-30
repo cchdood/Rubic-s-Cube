@@ -25,8 +25,32 @@
       3. The code uses Pygame library. So Pygame should be installed. Just open cmd and run the following code: $ pip install pygame
       
       B-2 Run the code
-      You can copy and paste all the code from "main code" to your IDE. link: https://github.com/cchdood/Rubic-s-Cube/blob/main/main%20code.
-      Elsewise, you can just downloaded the .py file: 
-      
+      You can copy and paste all the code from "main code" to your IDE. link: https://github.com/cchdood/Rubic-s-Cube/blob/main/main%20code. 
 
-# C.
+# C. Control
+      You can manually change the view of the cube or do certain operation with the hotkeys:
+      C-1 Change the view of cube (rotating the whole cube)
+      "W" key - Rotate up
+      "S" key - Rotate down
+      "A" key - Rotate left
+      "D" key - Rotate right
+      "Q" key - Rotate anticlockwise
+      "E" key - Rotate clockwise
+      
+      C-2 Manual Operation (rotating single layer)
+      note. When rotating a single layer of the cube, we have to specify which layer to rotate. So we let the layer to rotate be "n-th layer". 
+            (n is 1 by default, but can be changed with hotkeys)
+      "I" key - Rotate the n-th layer (n-th column) up
+      "K" key - Rotate the n=th layer (n-th column) down
+      "J" key - Rotate the n-th layer (n-th row) left
+      "L" key - Rotate the n-th layer (n-th row) right
+      "U" key - Rotate the n-th layer (the 1st layer is the one closest to you) anticlockwise
+      "O" key - Rotate the n-th layer clockwise
+      "1" key - change the value of n to 1
+      "2" key - change the value of n to 2
+      "3" key - change the value of n to 3
+      
+      C-3 Special Operation
+      "R" key - Shuffle the cube
+      "Home" key - Solve the cube (the solving algorithm I use is not the most efficient one, so it takes some time to solve)
+      
