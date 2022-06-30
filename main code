@@ -1691,11 +1691,19 @@ class Rubic:
                 steps_2()
                 self.UP(1, "real")
                 self.UP(1, "real")
+        steps_2()
 
 
     def SOLVE(self):
         self.WHITE_FLOWER()
         self.WHITE_CROSS()
+        self.LAYER_ONE()
+        self.LAYER_TWO()
+        self.BLUE_CROSS()
+        self.BLUE_FACE()
+        self.LAYER_THREE_EDGES_ADJUST()
+        self.LAYER_THREE_EDGES()
+        self.LAYER_THREE()
 
 def main():
     
@@ -1775,6 +1783,10 @@ def main():
                 if event.key == pygame.K_r:
                     cube.SHUFFLE()
 
+                if event.key == pygame.K_HOME:
+                    cube.SOLVE()
+                    
+
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
         for fface, lface, rface, uface, dface, bface, i in zip(
@@ -1806,4 +1818,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
