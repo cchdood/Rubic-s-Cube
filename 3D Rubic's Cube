@@ -1542,6 +1542,9 @@ class Rubic:
             self.ROTATE("right", "real")
 
         steps()
+
+        if self.upside[1] != "B" or self.upside[3] != "B" or self.upside[5] != "B" or self.upside[7] != "B":
+            self.BLUE_CROSS()
     
 
     def BLUE_FACE(self):
@@ -1679,7 +1682,7 @@ class Rubic:
             return
 
         if checker == 4:
-            self.ROTATE("right")
+            self.ROTATE("right", "real")
             self.UP(1, "real")
             self.RIGHT(1, "real")
             self.DOWN(3, "real")
@@ -1730,14 +1733,68 @@ class Rubic:
 
 
     def SOLVE(self):
+        def isdone():
+            color = self.frontside[0]
+            for face in self.frontside:
+                if face != color:
+                    return False
+            color = self.downside[0]
+            for face in self.downside:
+                if face != color:
+                    return False
+            color = self.upside[0]
+            for face in self.upside:
+                if face != color:
+                    return False
+            color = self.leftside[0]
+            for face in self.leftside:
+                if face != color:
+                    return False
+            color = self.rightside[0]
+            for face in self.rightside:
+                if face != color:
+                    return False
+            color = self.backside[0]
+            for face in self.backside:
+                if face != color:
+                    return False
+            return True
+
+        if isdone():
+            return
+        
         self.WHITE_FLOWER()
         self.WHITE_CROSS()
         self.LAYER_ONE()
+        
+        if isdone():
+            return
+        
         self.LAYER_TWO()
+
+        if isdone():
+            return
+        
         self.BLUE_CROSS()
+
+        if isdone():
+            return
+        
         self.BLUE_FACE()
+
+        if isdone():
+            return
+        
         self.LAYER_THREE_EDGES_ADJUST()
+
+        if isdone():
+            return
+        
         self.LAYER_THREE_EDGES()
+
+        if isdone():
+            return
+        
         self.LAYER_THREE()
 
 def main():
@@ -1820,6 +1877,29 @@ def main():
 
                 if event.key == pygame.K_HOME:
                     cube.SOLVE()
+
+                if event.key == pygame.K_z:
+                    cube.WHITE_FLOWER()
+                    cube.WHITE_CROSS()
+                    cube.LAYER_ONE()
+
+                if event.key == pygame.K_x:
+                    cube.LAYER_TWO()
+
+                if event.key == pygame.K_c:
+                    cube.BLUE_CROSS()
+
+                if event.key == pygame.K_v:
+                    cube.BLUE_FACE()
+
+                if event.key == pygame.K_b:
+                    cube.LAYER_THREE_EDGES_ADJUST()
+
+                if event.key == pygame.K_n:
+                    cube.LAYER_THREE_EDGES()
+
+                if event.key == pygame.K_m:
+                    cube.LAYER_THREE()
                     
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
