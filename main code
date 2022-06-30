@@ -1652,16 +1652,51 @@ class Rubic:
     def LAYER_THREE(self):
 
         for i in range(4):
-            if self.upside[4] == "B":
+            if self.leftside[4] == "B":
                 break
             self.ROTATE("up", "real")
             
         for i in range(4):
-            if self.upside[4] == "B":
+            if self.leftside[4] == "B":
                 break
             self.ROTATE("ACW", "real")
 
-        self.ROTATE("ACW", "real")
+        def check_special():
+            checker_ = 0
+            if self.frontside[0] != self.frontside[4] or self.upside[6] != self.upside[4]:
+                checker_ += 1
+            if self.frontside[6] != self.frontside[4] or self.downside[0] != self.downside[4]:
+                checker_ += 1
+            if self.downside[6] != self.downside[4] or self.backside[8] != self.backside[4]:
+                checker_ += 1
+            if self.backside[2] != self.backside[4] or self.upside[0] != self.upside[4]:
+                checker_ += 1
+
+            return checker_
+
+        checker = check_special()
+        if checker == 0:
+            return
+
+        if checker == 4:
+            self.ROTATE("right")
+            self.UP(1, "real")
+            self.RIGHT(1, "real")
+            self.DOWN(3, "real")
+            self.LEFT(1, "real")
+            self.DOWN(1, "real")
+            self.RIGHT(1, "real")
+            self.UP(3, "real")
+            self.LEFT(1, "real")
+            self.UP(1, "real")
+            self.RIGHT(1, "real")
+            self.UP(3, "real")
+            self.LEFT(1, "real")
+            self.DOWN(1, "real")
+            self.RIGHT(1, "real")
+            self.DOWN(3, "real")
+            self.LEFT(1, "real")
+            return
 
         def steps_2():
             for i in range(3):
