@@ -1,0 +1,432 @@
+### HW06 Prob. 1
+# Rubik's Cube.py
+# Author: 陳郁安
+
+### Problem description
+# Rubik's Cube.py simulates the solving of Rubik's Cube 
+# there are a few features(functions) for the user to use:
+# 1. RANDOM(), shuffle the cube
+# 2. VIEW(3d or 2d), to view the cube, can choose between 3d or unfold mode(defalut)
+# 3. ROTATE(direction), to rotate the view of the cube, valid arguments are: 'up', 'down', 'right', 'left', 'CW'(clockwise) and 'ACW'(anticlockwise)
+# 4. UP(n,t), to rotate the n-th column forward for t times
+# 5. DOWN(n,t), to rotate the n-th column backward
+# 6. RIGHT(n,t), to rotate the n-th row anticlockwise(view from above)
+# 7. LEFT(n,t), to rotate the n-th row clockwise(view from above)
+# 8. CW(n,t), to rotate the n-th level clockwise(view from front)
+# 9. ACW(n,t), to rotate the n-th level anticlockwise(view from front)
+
+### Skills and functions
+# basic space concept
+
+### Example IO (cmd prompt: "EE3031 > ")
+# >>> VIEW()
+# 　　　　　———
+# 　　　　｜ＢＢＢ｜
+# 　　　　｜ＢＢＢ｜
+# 　　　　｜ＢＢＢ｜
+# 　———　———　———　———
+# ｜ＧＧＧ｜ＲＲＲ｜ＹＹＹ｜ＯＯＯ｜
+# ｜ＧＧＧ｜ＲＲＲ｜ＹＹＹ｜ＯＯＯ｜
+# ｜ＧＧＧ｜ＲＲＲ｜ＹＹＹ｜ＯＯＯ｜
+# 　———　———　———　———
+# 　　　　｜ＷＷＷ｜
+# 　　　　｜ＷＷＷ｜
+# 　　　　｜ＷＷＷ｜
+# 　　　　　———
+# >>> RIGHT(2)
+# >>> VIEW()
+# 　　　　　———
+# 　　　　｜ＢＢＢ｜
+# 　　　　｜ＢＢＢ｜
+# 　　　　｜ＢＢＢ｜
+# 　———　———　———　———
+# ｜ＧＧＧ｜ＲＲＲ｜ＹＹＹ｜ＯＯＯ｜
+# ｜ＯＯＯ｜ＧＧＧ｜ＲＲＲ｜ＹＹＹ｜
+# ｜ＧＧＧ｜ＲＲＲ｜ＹＹＹ｜ＯＯＯ｜
+# 　———　———　———　———
+# 　　　　｜ＷＷＷ｜
+# 　　　　｜ＷＷＷ｜
+# 　　　　｜ＷＷＷ｜
+# 　　　　　———
+# >>> UP(2)
+# >>> VIEW()
+# 　　　　　———
+# 　　　　｜ＢＲＢ｜
+# 　　　　｜ＢＧＢ｜
+# 　　　　｜ＢＲＢ｜
+# 　———　———　———　———
+# ｜ＧＧＧ｜ＲＷＲ｜ＹＹＹ｜ＯＢＯ｜
+# ｜ＯＯＯ｜ＧＷＧ｜ＲＲＲ｜ＹＢＹ｜
+# ｜ＧＧＧ｜ＲＷＲ｜ＹＹＹ｜ＯＢＯ｜
+# 　———　———　———　———
+# 　　　　｜ＷＯＷ｜
+# 　　　　｜ＷＹＷ｜
+# 　　　　｜ＷＯＷ｜
+# 　　　　　———
+# >>> ACW()
+# >>> VIEW()
+# 　　　　　———
+# 　　　　｜ＢＲＢ｜
+# 　　　　｜ＢＧＢ｜
+# 　　　　｜ＹＲＹ｜
+# 　———　———　———　———
+# ｜ＧＧＢ｜ＲＧＲ｜ＷＹＹ｜ＯＢＯ｜
+# ｜ＯＯＲ｜ＷＷＷ｜ＯＲＲ｜ＹＢＹ｜
+# ｜ＧＧＢ｜ＲＧＲ｜ＷＹＹ｜ＯＢＯ｜
+# 　———　———　———　———
+# 　　　　｜ＧＯＧ｜
+# 　　　　｜ＷＹＷ｜
+# 　　　　｜ＷＯＷ｜
+# 　　　　　———
+# >>> DOWN(2,4)
+# >>> VIEW()
+# 　　　　　———
+# 　　　　｜ＢＲＢ｜
+# 　　　　｜ＢＧＢ｜
+# 　　　　｜ＹＲＹ｜
+# 　———　———　———　———
+# ｜ＧＧＢ｜ＲＧＲ｜ＷＹＹ｜ＯＢＯ｜
+# ｜ＯＯＲ｜ＷＷＷ｜ＯＲＲ｜ＹＢＹ｜
+# ｜ＧＧＢ｜ＲＧＲ｜ＷＹＹ｜ＯＢＯ｜
+# 　———　———　———　———
+# 　　　　｜ＧＯＧ｜
+# 　　　　｜ＷＹＷ｜
+# 　　　　｜ＷＯＷ｜
+# 　　　　　———
+# >>> VIEW("3D")
+# 　—————————
+# ｜＼ＢＢ＼ＲＲ＼ＢＢ＼
+# ｜Ｇ＼ＢＢ＼ＲＲ＼ＢＢ＼
+# ｜ＧＧ＼————————＼
+# ｜＼Ｇ｜＼ＢＢ＼ＧＧ＼ＢＢ＼
+# ｜Ｏ＼｜Ｇ＼ＢＢ＼ＧＧ＼ＢＢ＼
+# ｜ＯＯ｜ＧＧ＼————————＼
+# ｜＼Ｏ｜＼Ｇ｜＼ＹＹ＼ＲＲ＼ＹＹ＼
+# ｜Ｇ＼｜Ｏ＼｜Ｂ＼ＹＹ＼ＲＲ＼ＹＹ＼
+# ｜ＧＧ｜ＯＯ｜ＢＢ＼————————
+# 　＼Ｇ｜＼Ｏ｜＼Ｂ｜ＲＲ｜ＧＧ｜ＲＲ｜
+# 　　＼｜Ｇ＼｜Ｒ＼｜ＲＲ｜ＧＧ｜ＲＲ｜
+# 　　　｜ＧＧ｜ＲＲ｜————————｜
+# 　　　　＼Ｇ｜＼Ｒ｜ＷＷ｜ＷＷ｜ＷＷ｜
+# 　　　　　＼｜Ｂ＼｜ＷＷ｜ＷＷ｜ＷＷ｜
+# 　　　　　　＼ＢＢ｜————————｜
+# 　　　　　　　＼Ｂ｜ＲＲ｜ＧＧ｜ＲＲ｜
+# 　　　　　　　　＼｜ＲＲ｜ＧＧ｜ＲＲ｜
+# 　　　　　　　　　　————————
+# >>> ROTATE("CW")
+# >>> VIEW("3D")
+# 　—————————
+# ｜＼ＧＧ＼ＯＯ＼ＧＧ＼
+# ｜Ｗ＼ＧＧ＼ＯＯ＼ＧＧ＼
+# ｜ＷＷ＼————————＼
+# ｜＼Ｗ｜＼ＧＧ＼ＯＯ＼ＧＧ＼
+# ｜Ｏ＼｜Ｗ＼ＧＧ＼ＯＯ＼ＧＧ＼
+# ｜ＯＯ｜ＷＷ＼————————＼
+# ｜＼Ｏ｜＼Ｗ｜＼ＢＢ＼ＲＲ＼ＢＢ＼
+# ｜Ｗ＼｜Ｙ＼｜Ｇ＼ＢＢ＼ＲＲ＼ＢＢ＼
+# ｜ＷＷ｜ＹＹ｜ＧＧ＼————————
+# 　＼Ｗ｜＼Ｙ｜＼Ｇ｜ＲＲ｜ＷＷ｜ＲＲ｜
+# 　　＼｜Ｗ＼｜Ｏ＼｜ＲＲ｜ＷＷ｜ＲＲ｜
+# 　　　｜ＷＷ｜ＯＯ｜————————｜
+# 　　　　＼Ｗ｜＼Ｏ｜ＧＧ｜ＷＷ｜ＧＧ｜
+# 　　　　　＼｜Ｇ＼｜ＧＧ｜ＷＷ｜ＧＧ｜
+# 　　　　　　＼ＧＧ｜————————｜
+# 　　　　　　　＼Ｇ｜ＲＲ｜ＷＷ｜ＲＲ｜
+# 　　　　　　　　＼｜ＲＲ｜ＷＷ｜ＲＲ｜
+# 　　　　　　　　　　————————
+# >>> RANDOM()
+# >>> VIEW()
+# 　　　　　———
+# 　　　　｜ＹＧＧ｜
+# 　　　　｜ＹＹＯ｜
+# 　　　　｜ＲＲＹ｜
+# 　———　———　———　———
+# ｜ＯＷＧ｜ＧＹＹ｜ＢＯＷ｜ＷＲＢ｜
+# ｜ＹＷＢ｜ＯＯＲ｜ＧＢＧ｜ＢＲＢ｜
+# ｜ＹＯＯ｜ＢＧＷ｜ＯＢＲ｜ＷＹＯ｜
+# 　———　———　———　———
+# 　　　　｜ＧＷＲ｜
+# 　　　　｜ＷＧＲ｜
+# 　　　　｜ＢＷＲ｜
+# 　　　　　———
+# >>> VIEW("3D")
+# 　—————————
+# ｜＼ＹＹ＼ＧＧ＼ＧＧ＼
+# ｜Ｏ＼ＹＹ＼ＧＧ＼ＧＧ＼
+# ｜ＯＯ＼————————＼
+# ｜＼Ｏ｜＼ＹＹ＼ＹＹ＼ＯＯ＼
+# ｜Ｙ＼｜Ｗ＼ＹＹ＼ＹＹ＼ＯＯ＼
+# ｜ＹＹ｜ＷＷ＼————————＼
+# ｜＼Ｙ｜＼Ｗ｜＼ＲＲ＼ＲＲ＼ＹＹ＼
+# ｜Ｙ＼｜Ｗ＼｜Ｇ＼ＲＲ＼ＲＲ＼ＹＹ＼
+# ｜ＹＹ｜ＷＷ｜ＧＧ＼————————
+# 　＼Ｙ｜＼Ｗ｜＼Ｇ｜ＧＧ｜ＹＹ｜ＹＹ｜
+# 　　＼｜Ｏ＼｜Ｂ＼｜ＧＧ｜ＹＹ｜ＹＹ｜
+# 　　　｜ＯＯ｜ＢＢ｜————————｜
+# 　　　　＼Ｏ｜＼Ｂ｜ＯＯ｜ＯＯ｜ＲＲ｜
+# 　　　　　＼｜Ｏ＼｜ＯＯ｜ＯＯ｜ＲＲ｜
+# 　　　　　　＼ＯＯ｜————————｜
+# 　　　　　　　＼Ｏ｜ＢＢ｜ＧＧ｜ＷＷ｜
+# 　　　　　　　　＼｜ＢＢ｜ＧＧ｜ＷＷ｜
+# 　　　　　　　　　　————————
+# >>> 
+
+import random
+random.seed()
+
+side_1 = ["Ｒ","Ｒ","Ｒ","Ｒ","Ｒ","Ｒ","Ｒ","Ｒ","Ｒ"]
+side_2 = ["Ｇ","Ｇ","Ｇ","Ｇ","Ｇ","Ｇ","Ｇ","Ｇ","Ｇ"]
+side_3 = ["Ｙ","Ｙ","Ｙ","Ｙ","Ｙ","Ｙ","Ｙ","Ｙ","Ｙ"]
+side_4 = ["Ｂ","Ｂ","Ｂ","Ｂ","Ｂ","Ｂ","Ｂ","Ｂ","Ｂ"]
+side_5 = ["Ｗ","Ｗ","Ｗ","Ｗ","Ｗ","Ｗ","Ｗ","Ｗ","Ｗ"]
+side_6 = ["Ｏ","Ｏ","Ｏ","Ｏ","Ｏ","Ｏ","Ｏ","Ｏ","Ｏ"]
+
+frontside = side_1
+leftside = side_2
+rightside = side_3
+upside = side_4
+downside = side_5
+backside = side_6
+
+def VIEW(mode = "2d"):
+    if mode == "3d" or mode == "3D":
+        print("　—————————")
+        print("｜＼{0}{0}＼{1}{1}＼{2}{2}＼".format(upside[0],upside[1],upside[2]))
+        print("｜{0}＼{1}{1}＼{2}{2}＼{3}{3}＼".format(leftside[0],upside[0],upside[1],upside[2]))
+        print("｜{0}{0}＼————————＼".format(leftside[0]))
+        print("｜＼{0}｜＼{1}{1}＼{2}{2}＼{3}{3}＼".format(leftside[0],upside[3],upside[4],upside[5]))
+        print("｜{0}＼｜{1}＼{2}{2}＼{3}{3}＼{4}{4}＼".format(leftside[3],leftside[1],upside[3],upside[4],upside[5]))
+        print("｜{0}{0}｜{1}{1}＼————————＼".format(leftside[3],leftside[1]))
+        print("｜＼{0}｜＼{1}｜＼{2}{2}＼{3}{3}＼{4}{4}＼".format(leftside[3],leftside[1],upside[6],upside[7],upside[8]))
+        print("｜{0}＼｜{1}＼｜{2}＼{3}{3}＼{4}{4}＼{5}{5}＼".format(leftside[6],leftside[4],leftside[2],upside[6],upside[7],upside[8]))
+        print("｜{0}{0}｜{1}{1}｜{2}{2}＼————————".format(leftside[6],leftside[4],leftside[2]))
+        print("　＼{0}｜＼{1}｜＼{2}｜{3}{3}｜{4}{4}｜{5}{5}｜".format(leftside[6],leftside[4],leftside[2],frontside[0],frontside[1],frontside[2]))
+        print("　　＼｜{0}＼｜{1}＼｜{2}{2}｜{3}{3}｜{4}{4}｜".format(leftside[7],leftside[5],frontside[0],frontside[1],frontside[2]))
+        print("　　　｜{0}{0}｜{1}{1}｜————————｜".format(leftside[7],leftside[5]))
+        print("　　　　＼{0}｜＼{1}｜{2}{2}｜{3}{3}｜{4}{4}｜".format(leftside[7],leftside[5],frontside[3],frontside[4],frontside[5]))
+        print("　　　　　＼｜{0}＼｜{1}{1}｜{2}{2}｜{3}{3}｜".format(leftside[8],frontside[3],frontside[4],frontside[5]))
+        print("　　　　　　＼{0}{0}｜————————｜".format(leftside[8]))
+        print("　　　　　　　＼{0}｜{1}{1}｜{2}{2}｜{3}{3}｜".format(leftside[8],frontside[6],frontside[7],frontside[8]))
+        print("　　　　　　　　＼｜{0}{0}｜{1}{1}｜{2}{2}｜".format(frontside[6],frontside[7],frontside[8]))
+        print("　　　　　　　　　　————————")
+    if mode == "2d" or mode == "unfold" or mode == "2D":
+        print("　　　　　———")
+        print("　　　　｜{0}{1}{2}｜".format(upside[0],upside[1],upside[2]))
+        print("　　　　｜{0}{1}{2}｜".format(upside[3],upside[4],upside[5]))
+        print("　　　　｜{0}{1}{2}｜".format(upside[6],upside[7],upside[8]))
+        print("　———　———　———　———")
+        print("｜{0}{1}{2}｜{3}{4}{5}｜{6}{7}{8}｜{9}{10}{11}｜".format(leftside[0],leftside[1],leftside[2],frontside[0],frontside[1],frontside[2],rightside[0],rightside[1],rightside[2],backside[0],backside[1],backside[2]))
+        print("｜{0}{1}{2}｜{3}{4}{5}｜{6}{7}{8}｜{9}{10}{11}｜".format(leftside[3],leftside[4],leftside[5],frontside[3],frontside[4],frontside[5],rightside[3],rightside[4],rightside[5],backside[3],backside[4],backside[5]))
+        print("｜{0}{1}{2}｜{3}{4}{5}｜{6}{7}{8}｜{9}{10}{11}｜".format(leftside[6],leftside[7],leftside[8],frontside[6],frontside[7],frontside[8],rightside[6],rightside[7],rightside[8],backside[6],backside[7],backside[8]))
+        print("　———　———　———　———")
+        print("　　　　｜{0}{1}{2}｜".format(downside[0],downside[1],downside[2]))
+        print("　　　　｜{0}{1}{2}｜".format(downside[3],downside[4],downside[5]))
+        print("　　　　｜{0}{1}{2}｜".format(downside[6],downside[7],downside[8]))
+        print("　　　　　———")
+
+
+
+def ROTATE(d = "right", mode = "none"):
+    def CW_rotate(side):
+        for i in range(2):
+            temp = side[0]
+            side[0] = side[3]
+            side[3] = side[6]
+            side[6] = side[7]
+            side[7] = side[8]
+            side[8] = side[5]
+            side[5] = side[2]
+            side[2] = side[1]
+            side[1] = temp
+
+    def ACW_rotate(side):
+        for i in range(2):
+            temp = side[0]
+            side[0] = side[1]
+            side[1] = side[2]
+            side[2] = side[5]
+            side[5] = side[8]
+            side[8] = side[7]
+            side[7] = side[6]
+            side[6] = side[3]
+            side[3] = temp
+
+    def reverse(side):
+        for i in range(3):
+            temp = side[i]
+            side[i] = side[i+6]
+            side[i+6] = temp
+        for i in range(3):
+            temp = side[i*3]
+            side[i*3] = side[i*3+2]
+            side[i*3+2] = temp
+        
+    global frontside, leftside, rightside, upside, downside, backside
+    if d == "up":
+        reverse(backside)
+        temp = downside
+        downside = backside
+        backside = upside
+        upside = frontside
+        frontside = temp
+        CW_rotate(rightside)
+        ACW_rotate(leftside)
+        reverse(backside)
+
+    elif d == "down":
+        reverse(backside)
+        temp = downside
+        downside = frontside
+        frontside = upside
+        upside = backside
+        backside = temp
+        CW_rotate(leftside)
+        ACW_rotate(rightside)
+        reverse(backside)
+
+    elif d == "right":
+        temp = rightside
+        rightside = frontside
+        frontside = leftside
+        leftside = backside
+        backside = temp
+        CW_rotate(downside)
+        ACW_rotate(upside)
+
+    elif d == "left":
+        temp = rightside
+        rightside = backside
+        backside = leftside
+        leftside = frontside
+        frontside = temp
+        CW_rotate(upside)
+        ACW_rotate(downside)
+
+    elif d == "CW":
+        ROTATE("right")
+        ROTATE("up")
+        ROTATE("left")
+
+    elif d == "ACW":
+        ROTATE("down")
+        ROTATE("left")
+        ROTATE("up")
+
+    else:
+        print("unknown direction: '", d, "'. Valid direction parameters: 'up', 'down', 'right', 'left', 'CW' and 'ACW'.", sep = "")
+
+    if mode == "3d":
+        view_cube("3d")
+    elif mode == "2d" or mode == "unfold":
+        view_cube("2d")
+    else:
+        return
+
+def UP(column = 1, times = 1):
+    rtimes = times % 4
+    if rtimes == 0:
+        return
+    elif rtimes == 1:
+        def reverse(side):
+            for i in range(3):
+                temp = side[i]
+                side[i] = side[i+6]
+                side[i+6] = temp
+            for i in range(3):
+                temp = side[i*3]
+                side[i*3] = side[i*3+2]
+                side[i*3+2] = temp
+                
+        global frontside, leftside, rightside, upside, downside, backside
+        def CW_rotate(side):
+            for i in range(2):
+                temp = side[0]
+                side[0] = side[3]
+                side[3] = side[6]
+                side[6] = side[7]
+                side[7] = side[8]
+                side[8] = side[5]
+                side[5] = side[2]
+                side[2] = side[1]
+                side[1] = temp
+
+        def ACW_rotate(side):
+            for i in range(2):
+                temp = side[0]
+                side[0] = side[1]
+                side[1] = side[2]
+                side[2] = side[5]
+                side[5] = side[8]
+                side[8] = side[7]
+                side[7] = side[6]
+                side[6] = side[3]
+                side[3] = temp
+
+        up = column - 1
+        mid = up + 3
+        down = mid + 3
+        reverse(backside)
+        temp = downside[up], downside[mid], downside[down]
+        downside[up], downside[mid], downside[down] = backside[up], backside[mid], backside[down]
+        backside[up], backside[mid], backside[down] = upside[up], upside[mid], upside[down]
+        upside[up], upside[mid], upside[down] = frontside[up], frontside[mid], frontside[down]
+        frontside[up], frontside[mid], frontside[down] = temp
+        reverse(backside)
+
+        if column == 1:
+            ACW_rotate(leftside)
+        if column == 3:
+            ACW_rotate(rightside)
+        
+    elif rtimes == 2:
+        front(column)
+        front(column)
+    elif rtimes == 3:
+        front(column)
+        front(column)
+        front(column)
+
+def DOWN(column = 1, times = 1):
+    ROTATE("right")
+    ROTATE("right")
+    UP(4-column, times)
+    ROTATE("left")
+    ROTATE("left")
+
+def RIGHT(row = 1, times = 1):
+    ROTATE("ACW")
+    UP(row, times)
+    ROTATE("CW")
+
+def LEFT(row = 1, times = 1):
+    ROTATE("CW")
+    UP(4 - row, times)
+    ROTATE("ACW")
+
+def CW(level = 1, times = 1):
+    ROTATE("right")
+    UP(4 - level, times)
+    ROTATE("left")
+
+def ACW(level = 1, times = 1):
+    ROTATE("left")
+    UP(level, times)
+    ROTATE("right")
+
+def RANDOM():
+    for i in range(20):    #魔術方塊的最快解在20步以內
+        op = random.randint(1,6)
+        random.seed()
+        index =random.randint(1,3)
+        if op == 1:
+            UP(index)
+        elif op == 2:
+            DOWN(index)
+        elif op == 3:
+            LEFT(index)
+        elif op == 4:
+            RIGHT(index)
+        elif op == 5:
+            CW(index)
+        else:
+            ACW(index)
