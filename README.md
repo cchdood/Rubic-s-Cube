@@ -5,7 +5,7 @@
     This is a python code written with pygame and Opengl to simulate the operation and solving algorithm of Rubic's Cube.
 
 # B. Requirement & Guide to run the code.
-#     B-1 Requirement
+      B-1 Requirement
       1. The code is written with python 3.9.7, so Python (version later than 3.9.7) should be installed. Python download link:https://www.python.org/downloads/
       2. The code uses OpenGL Library. So OpenGL should be installed.
           2-1. Installation of OpenGL for python
@@ -23,5 +23,10 @@
                    That's it!
                  
       3. The code uses Pygame library. So Pygame should be installed. Just open cmd and run the following code: $ pip install pygame
-#     B-2 Run the code
-      Just copy and paste all the code from 
+      
+      B-2 Run the code
+      You can copy and paste all the code from "main code" to your IDE. link: https://github.com/cchdood/Rubic-s-Cube/blob/main/main%20code.
+      Elsewise, you can just downloaded the .py file: 
+      
+
+# C.
