@@ -1,4 +1,4 @@
-# Rubic-s-Cube
+# 3D Rubic's Cube
 # made by 陳郁安 (Student ID. B10703014) from National Taiwan University
 
 # A. Abstract.
