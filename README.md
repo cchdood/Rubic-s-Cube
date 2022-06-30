@@ -3,6 +3,14 @@
 
 # A. Abstract.
     This is a python code written with pygame and Opengl to simulate the operation and solving algorithm of Rubic's Cube.
+    The program wasn't written to demonstrate 3D rubic's cube originally. The original program is shorter, with about 200~300 lines, using print() function to
+    demonstrate the shape of the cube, and I wrote that just to deal with a "self-design program" assignment in Program Design course. 
+    Simple though, the original program offers all basic function (except solving the cube) to operate the cube, so, I taught myself how to write 3D model using
+    OpenGL to transform the original cube to a new 3D cube. And I would like to map operations to the keys on keyboard instead of typing certain command everytime,
+    so I utilized pygame to make it happened. Lastly, I wrote a solving algorithm for the cube, just to make the project more completed. Combining the original code,
+    key-mapping setting, 3D model and animation programing, solving algorithm and other adjustment, the new code contains about 1800~1900 lines. It takes some time
+    and effort though, but worth it!
+    Here is the link of the original code if you're interested: 
 
 # B. Requirement & Guide to run the code.
     B-1 Requirement
