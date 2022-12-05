@@ -1,13 +1,13 @@
 # 3D Rubic's Cube
-# made by 陳郁安 (Student ID. B10703014) from National Taiwan University
+# made by 陳郁安
 
 # A. Abstract.
     "3D Rubic's Cube" is a python code written with pygame and Opengl to simulate the operation and solving algorithm of Rubic's Cube.
     The program wasn't written to demonstrate 3D rubic's cube originally. The original program is shorter, with about 200~300 lines, using print() function to
     demonstrate the shape of the cube, and I wrote that just to deal with a "self-design program" assignment in Program Design course. 
-    Simple though, the original program offers all basic function (except solving the cube) to operate the cube, so, I taught myself how to write 3D model using
-    OpenGL to transform the original cube to a new 3D cube. And I would like to map operations to the keys on keyboard instead of typing certain command everytime,
-    so I utilized pygame to make it happened. Lastly, I wrote a solving algorithm for the cube, just to make the project more completed. Combining the original code,
+    Simple though, the original program offers all basic function (except solving the cube) to operate the cube, so, I proceed to write 3D model using
+    OpenGL to transform the original cube to a new 3D cube. And I mapped the operations to the keys on keyboard instead of typing certain command everytime,
+    and I utilized pygame to make it happened. Lastly, I wrote a solving algorithm for the cube, just to make the project more completed. Combining the original code,
     key-mapping setting, 3D model and animation programing, solving algorithm and other adjustment, the new code contains about 1800~1900 lines. It takes some time
     and effort though, but worth it!
     The original code is in "Original Code (Concept)", if you're interested :)
@@ -60,7 +60,7 @@
       
     C-3 Special Operation
     "R" key - Shuffle the cube
-    "Home" key - Solve the cube (the solving algorithm I use is not the most efficient one, so it takes some time to solve)
+    "Home" key - Solve the cube   # there's something wrong in this function and I haven't yet fixed.
       
 # D. Control Guide and solving showcase:
     https://www.youtube.com/watch?v=LVUK65qG2_Q
